@@ -1,2 +1,2 @@
-# shared-compute-example
-Shared compute example for Medium.
+# model-hosting-example
+An example of creating a model-hosting service for Medium.
