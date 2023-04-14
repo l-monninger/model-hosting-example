@@ -1,4 +1,4 @@
-from ..deployer import Deployer
+from ...deployer import Deployer
 from typing import Optional
 from google.cloud.run_v2 import ServicesAsyncClient, CreateServiceRequest, Service, RevisionTemplate, Container, DeleteServiceRequest, RevisionScaling
 import os
