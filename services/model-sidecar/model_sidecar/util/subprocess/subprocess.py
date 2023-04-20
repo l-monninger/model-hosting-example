@@ -1,10 +1,11 @@
 import os
 import subprocess
 from threading import Thread
-from queue import Queue
+from queue import Queue, Empty
 from typing import IO, AsyncIterator, Dict, Iterable, Optional, Tuple
 from enum import Enum, IntEnum
 import sys
+import asyncio
 
 
 class StdFd(IntEnum):
@@ -12,27 +13,31 @@ class StdFd(IntEnum):
     stderr = 1
     stdeof = 2
 
-def read_fd(pipe :  IO[bytes], queue : Queue[Tuple[StdFd, bytes]], fd : Optional[StdFd] = StdFd.stdout):
+async def read_fd(pipe :  asyncio.StreamReader, queue : Queue[Tuple[StdFd, bytes]], fd : Optional[StdFd] = StdFd.stdout):
     try:
-        with pipe:
-            for line in iter(pipe.readline, b''):
-                queue.put((fd, line))
+        while line := await pipe.readline():
+            queue.put((fd, line))
     finally:
         queue.put((StdFd.stdeof, bytes("", encoding="UTF-8")))
 
-async def call_with_env(cmd : Iterable[str], *, env : Dict[str, str])->AsyncIterator[Tuple[StdFd, bytes]]:
+async def call_without_env(cmd : Iterable[str])->AsyncIterator[Tuple[StdFd, bytes]]:
     
-    print(cmd)
     queue : Queue[Tuple[StdFd, bytes]] = Queue()
-    process = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE, 
-        stderr=subprocess.PIPE, 
-        env=env,
+    
+    sys.stdin.flush()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    
+    process = await asyncio.create_subprocess_exec(
+        *cmd,
+        stdout=asyncio.subprocess.PIPE, 
+        stderr=asyncio.subprocess.PIPE, 
+        # env=env,
+        stdin=open(os.devnull)
     )
-   
-    Thread(target=read_fd, args=[process.stdout, queue, StdFd.stdout]).start()
-    Thread(target=read_fd, args=[process.stderr, queue, StdFd.stderr]).start()
+    
+    tout = asyncio.create_task(read_fd(process.stdout, queue, StdFd.stdout))
+    terr = asyncio.create_task(read_fd(process.stderr, queue, StdFd.stderr))
     
     hits = 0
     while hits < 2:
@@ -44,7 +49,13 @@ async def call_with_env(cmd : Iterable[str], *, env : Dict[str, str])->AsyncIter
                 continue
         
             yield next
-        except Exception:
+        except Empty:
+            await asyncio.sleep(0)
             continue
         
     yield (StdFd.stdeof, bytes("", encoding="UTF-8"))
+    
+    tout.cancel()
+    terr.cancel()
+    
+    

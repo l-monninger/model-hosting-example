@@ -9,13 +9,14 @@ class RedisRegistry(Registry):
     delimiter : str = "::,::"
     sidecar_urls : str = "sidecars"
     latent_model_urls : str = "models"
+    encoding : str = "UTF-8"
     
     def __init__(
         self,
         *,
         store = redis.Redis(
             host=os.environ.get("REDIS_HOST", "0.0.0.0"), 
-            port=os.environ.get("REDIS_PORT", 6363), 
+            port=os.environ.get("REDIS_PORT", 6379), 
             db=0
         )
     ) -> None:
@@ -30,11 +31,11 @@ class RedisRegistry(Registry):
             path,
             url
         )
-        return self.store.get(path)
+        return await self.get_sidecar_url(id=id)
     
-    async def get_sidecar_url(self, *, id: str, url: str) -> str:
+    async def get_sidecar_url(self, *, id: str) -> str:
         path = f"{self.root}{self.delimiter}{self.sidecar_urls}{self.delimiter}{id}"
-        return self.store.get(path)
+        return str(self.store.get(path), encoding=self.encoding)
     
     async def remove_sidecar_url(self, *, id: str) -> str:
         path = f"{self.root}{self.delimiter}{self.sidecar_urls}{self.delimiter}{id}"
@@ -46,11 +47,11 @@ class RedisRegistry(Registry):
             path,
             url
         )
-        return self.store.get(path)
+        return await self.get_latent_model_url(id=id)
     
     async def get_latent_model_url(self, *, id: str) -> str:
         path = f"{self.root}{self.delimiter}{self.latent_model_urls}{self.delimiter}{id}"
-        return self.store.get(path)
+        return str(self.store.get(path), encoding=self.encoding)
     
     async def remove_latent_model_url(self, *, id: str) -> str:
         path = f"{self.root}{self.delimiter}{self.latent_model_urls}{self.delimiter}{id}"

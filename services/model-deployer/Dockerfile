@@ -7,6 +7,8 @@ WORKDIR $APP_HOME
 
 
 COPY . .
+# copy default creds
+COPY ./.creds/gac.json ~/.config/gcloud/application_default_credentials.json
 
 RUN pip install --upgrade pip
 RUN pip install -r requirements.txt

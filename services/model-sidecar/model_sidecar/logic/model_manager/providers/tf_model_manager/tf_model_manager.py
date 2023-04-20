@@ -2,7 +2,7 @@ from ...model_manager import ModelManager
 from model_sidecar.util.model_config import ModelConfig
 from typing import IO, AsyncIterator, Dict, Iterable, Optional
 import os
-from model_sidecar.util.subprocess import call_with_env, StdFd
+from model_sidecar.util.subprocess import call_without_env, StdFd
 from typing import Tuple
 import re
 from dotenv import load_dotenv
@@ -31,9 +31,11 @@ class TfModelManager(ModelManager[ModelConfig]):
         }
 
         
-        async for fd, line in call_with_env([
-            "terraform", "apply", "-auto-approve"
-        ], env=env):
+        async for fd, line in call_without_env([
+            "terraform", "apply", "-auto-approve", 
+            f"-var=model_runtime_container={GKR_CONTAINER_REG}",
+            f"-var=model_runtime_prompt={config.prompt}"
+        ]):
             str_line = str(line, encoding="UTF-8")
             match = re.search("cloud_run_instance_url = \"(https://.*?)\"", str_line)
             if match is not None:
@@ -49,9 +51,10 @@ class TfModelManager(ModelManager[ModelConfig]):
             "TF_VAR_model_runtime_container" : GKR_CONTAINER_REG
         }
         
-        async for fd, line in call_with_env([
-            "terraform", "destroy", "-auto-approve"
-        ], env=env):
+        async for fd, line in call_without_env([
+            "terraform", "destroy", "-auto-approve",
+            f"-var=model_runtime_container={GKR_CONTAINER_REG}",
+        ]):
             yield (fd, str(line, encoding="UTF-8"))
             
         self.url = None

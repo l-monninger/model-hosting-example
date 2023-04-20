@@ -4,7 +4,7 @@ from model_deployer.logic.deployer import Deployer
 from model_deployer.logic.deployer.providers.cloud_run_deployer import CloudRunDeployer
 from model_deployer.logic.registry import Registry
 from model_deployer.logic.registry.providers.redis_registry import RedisRegistry
-
+import json
 import aiohttp
 from websockets import client
 from fastapi import HTTPException
@@ -23,20 +23,22 @@ class DeployerRegistryOrchestrator(Orchestrator):
         self.registry = registry
     
     async def get_sidecar_url(self, *, id: str) -> str:
-        return await self.registry.get_sidecar_url(id)
+        return await self.registry.get_sidecar_url(id=id)
     
     async def get_model_url_at_sidecar(self, *, id: str) -> str:
         
         sidecar_url = await self.get_sidecar_url(id=id)
         async with aiohttp.ClientSession() as session:
             async with session.get(f"{sidecar_url}/model_url") as response:
-                return await response.text()
+                return await response.json()
 
     
     async def get_model_url(self, *, id: str) -> str:
         
         url_at_sidecar = await self.get_model_url_at_sidecar(id=id)
-        self.registry.set_latent_model_url(id=id, url=url_at_sidecar)
+        if url_at_sidecar is None:
+            return None
+        await self.registry.set_latent_model_url(id=id, url=url_at_sidecar)
         return url_at_sidecar
     
     async def create_model(self, *, prompt: Optional[str] = None) -> str:
@@ -44,8 +46,8 @@ class DeployerRegistryOrchestrator(Orchestrator):
         # start the sidecar
         id = await self.registry.next_id()
         sidecar_url = await self.deployer.deploy_sidecar(id)
-        await self.registry.set_sidecar_url(id, sidecar_url)
-        return sidecar_url
+        await self.registry.set_sidecar_url(id=id, url=sidecar_url)
+        return id
         
         
     
@@ -53,8 +55,12 @@ class DeployerRegistryOrchestrator(Orchestrator):
         
         if id == None:
             return await self.create_model(prompt=prompt)
-        else:
-            return await self.get_sidecar_url(id=id)
+        
+        sidecar_url = await self.get_sidecar_url(id=id)
+        if sidecar_url == None:
+            return await self.create_model(prompt=prompt)
+        
+        return id
         
     async def destroy_model(self, *, id: str) -> str:
         """Use for top-down destroys.
@@ -79,10 +85,12 @@ class DeployerRegistryOrchestrator(Orchestrator):
         # destroy the model
         model_url = await self.get_model_url(id=id)
         sidecar_url = await self.get_sidecar_url(id=id)
-        stream = client.connect(f"{sidecar_url}/destroy")
-        async for fd, line in stream:
-            if fd == 0:
-                raise HTTPException(500, detail=f"Destruction of model failed on: {line}")
-        await self.registry.remove_latent_model_url(id)
+        socket_url = sidecar_url.replace("http", "ws")
+        
+        async with  client.connect(f"{socket_url}/destroy") as stream:
+            async for fd, line in stream:
+                if fd == 0:
+                    raise HTTPException(500, detail=f"Destruction of model failed on: {line}")
+            await self.registry.remove_latent_model_url(id)
         
         return model_url
