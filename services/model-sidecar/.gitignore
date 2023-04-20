@@ -1,0 +1,6 @@
+venv
+.env
+.local
+.terraform.loc.hcl
+.creds
+.creds
