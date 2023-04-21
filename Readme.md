@@ -10,6 +10,3 @@ All services can be run by `python run.py` in their respective directory or star
 Call `npm run` or `yarn run` for the `fronts/web`.
 
 **Warning:** I advise against sending this application live in any way. OpenAI usage would very costly.
-
-## `/fronts`
-Contains fr
