@@ -7,7 +7,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 class Summarizer:
     
-    size : int = 512
+    size : int = 1024
     model_engine : str = "gpt-3.5-turbo"
     sys_prompt_template : str = f"""
 You are a brainstorming assistant. You will interact with a User and Brancher.

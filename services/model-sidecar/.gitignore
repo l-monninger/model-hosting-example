@@ -4,3 +4,4 @@ venv
 .terraform.loc.hcl
 .creds
 .creds
+*.tfstate
