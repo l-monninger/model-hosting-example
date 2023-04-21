@@ -5,6 +5,8 @@ import { getRuntimeSummaryConnection, useSummary } from "./summary";
 import { promptModel } from "./prompt";
 import { useRuntimeUrl } from "../deployer/runtimeUrl";
 
+const edeps : any[] = [];
+
 export const useModelData = (modelId : string, size : number = 1024) : {
     branchesHistory : string[][],
     branches : string[],

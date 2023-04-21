@@ -37,16 +37,14 @@ export const useSummary = (modelId : string, size : number = 1024) : {
             let ws = getRuntimeSummaryConnection(wsUrl);
      
             ws.onopen = ()=>{
-                console.log("CONNECTED TO SUMMARY");
+        
             }
 
             ws.onmessage = (msg)=>{
-                console.log("SUMMARY: ", msg);
                 addSummary(JSON.parse(msg.data) as string)
             }
 
             ws.onclose = ()=>{
-                console.log("RECEIVED BRANCHES CLOSED");
                 timeout = setTimeout(()=>{
                     setNeedsBranchSocket(false);
                 }, 100);

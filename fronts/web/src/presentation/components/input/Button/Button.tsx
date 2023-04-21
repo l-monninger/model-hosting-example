@@ -41,9 +41,13 @@ export const Button : FC<ButtonProps>  = (props) =>{
 
     })
 
+    const {
+        aonClick,
+        ...primitiveProps
+    } = props;
 
     return (
-        <LoadingButton onClick={props.aonClick ? handleAonClick : undefined} {...props} loading={status === 1||props.loading} >
+        <LoadingButton onClick={props.aonClick ? handleAonClick : undefined} {...primitiveProps} loading={status === 1||props.loading} >
             {status === 2 ? <X/> : props.children}
         </LoadingButton>
     )

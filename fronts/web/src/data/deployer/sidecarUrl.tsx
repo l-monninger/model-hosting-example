@@ -20,7 +20,7 @@ export const SidecarUrls : {[key : string] : [
 }
 
 export const useSidecarUrl = (latency : number = 10_000) : {
-    getSidecarUrl : (id : string)=> (string|undefined )
+    getSidecarUrl : (id : string, force ? : boolean)=> (string|undefined )
 } =>{
 
     const {get} = useLatentCache<string, string>({

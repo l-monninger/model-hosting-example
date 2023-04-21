@@ -20,7 +20,7 @@ export const RuntimeUrls : {[key : string] : [
 }
 
 export const useRuntimeUrl = (latency : number = 10_000) : {
-    getRuntimeUrl : (id : string)=> (string|undefined )
+    getRuntimeUrl : (id : string, force ? : boolean)=> (string|undefined )
 } =>{
 
     const { get } = useLatentCache<string, string>({

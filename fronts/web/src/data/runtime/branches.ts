@@ -36,16 +36,14 @@ export const useBranches = (modelId : string, size : number = 1024) : {
             let ws = getRuntimeBranchesConnection(wsUrl);
      
             ws.onopen = ()=>{
-                console.log("RECEIVED BRANCHES OPEN.")
+
             }
 
             ws.onmessage = (msg)=>{
-                console.log("BRANCHES", msg);
                 addBranches(JSON.parse(msg.data) as string[])
             }
 
             ws.onclose = ()=>{
-                console.log("RECEIVED BRANCHES CLOSE.")
                 timeout = setTimeout(()=>{
                     setNeedsBranchSocket(false);
                 }, 100);

@@ -7,7 +7,7 @@ export type CacheDef<K extends any, V extends any> = {
     cache : LatentCache<V>,
     getter : (key : K)=>Promise<V>,
     hash  : (key : K)=>string,
-    latency : number
+    latency : number,
 }
 
 export const _flag = <V>(
@@ -37,26 +37,41 @@ export const _readThrough = async <K, V>(
     notify : ()=>void
 ) : Promise<void> => {
 
-    const res = await cache.getter(key)
+    const res = await cache.getter(key);
+    const _res = res === null ? undefined : res; 
+    const oldValue = cache.cache[hash]
     _setCache(
         hash,
-        res,
+        _res,
         cache.cache
     );
-    notify();
+    if(_res !== oldValue)
+        notify();
+    
 
 }
 
 export const getThroughCache = <K, V>(
     key : K,
     cache : CacheDef<K, V>,
-    notify : ()=>void
+    notify : ()=>void,
+    force : boolean
 ) : V | undefined =>{
 
     const hash = cache.hash(key);
-
     // check if it exists at all
     const res = cache.cache[hash];
+
+    if(force) {
+        _readThrough(
+            hash,
+            key,
+            cache,
+            notify
+        );
+        return res ? res[0] : undefined;
+    }
+
     if(!res) {
         _setCache(hash, undefined, cache.cache);
         _readThrough(
@@ -71,8 +86,8 @@ export const getThroughCache = <K, V>(
     // unpack value and timestamp
     const [val, ts] = res
     
-    if(performance.now() - ts > cache.latency){
-        _setCache(hash, undefined, cache.cache);
+    if((performance.now() - ts > cache.latency)){
+        _setCache(hash, val, cache.cache);
         _readThrough(
             hash,
             key,
@@ -83,7 +98,6 @@ export const getThroughCache = <K, V>(
 
     };
 
-    console.log(val)
     return val;
  
 }
@@ -97,25 +111,30 @@ export const useLatentCache = <K extends any, V extends any>({
     cache : LatentCache<V>,
     getter : (key : K)=>Promise<V>,
     hash ? : (key : K)=>string,
-    latency ? : number
+    latency ? : number,
 })=>{
 
     const [tick, increment] = useReducer(x=>x+1, 0);
-    console.log("USING LATENT CACHE: ", tick, getter)
 
     return {
         get : (
-            id : K
-        ) : V|undefined =>getThroughCache(
-            id,
-            {
-                cache,
-                getter,
-                hash,
-                latency,
-            },
-            increment
-           )
+            id : K,
+            force : boolean = false
+        ) : V|undefined =>{
+
+            return getThroughCache(
+                id,
+                {
+                    cache,
+                    getter,
+                    hash,
+                    latency,
+                },
+                increment,
+                force
+            );
+
+        }
                 
     }
 
