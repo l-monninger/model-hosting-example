@@ -11,11 +11,11 @@ Call `npm run` or `yarn run` for the `fronts/web`.
 
 **Warning:** I advise against sending a version of this application live in any way. OpenAI usage would very costly.
 
-### `fronts`
+### `./fronts`
 Contains all of the frontends. Right now there's only web.
 
-### `services`
+### `./services`
 Contains all backend services: `services/model-deployer`, `services/model-runtime`, and `services/model-sidecar`.
 
-### `infrastructure`
+### `./infra`
 Empty for now. Lz.
